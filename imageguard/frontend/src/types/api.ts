@@ -94,3 +94,97 @@ export const DEFAULT_WATERMARK_SETTINGS: WatermarkSettings = {
 }
 
 export interface WatermarkResult { blob: Blob; filename: string }
+
+// ---- multi-method analysis -------------------------------------------------------------
+export type MethodId = 'copy_move' | 'splicing' | 'localization'
+export type MethodStatus =
+  | 'candidate_regions_found' | 'no_candidate_regions_found' | 'inconclusive' | 'unavailable' | 'failed'
+
+export interface MethodResult {
+  method: MethodId
+  category: 'copy_move' | 'splicing' | 'local_manipulation'
+  evidence_type: 'feature_match_regions' | 'heuristic_forensic_map' | 'model_probability_map'
+  status: MethodStatus
+  status_reason: string
+  method_name: string
+  method_version: string
+  experimental: boolean
+  model: ModelInfo | null
+  threshold: number | null
+  threshold_semantics: string | null
+  region_count: number
+  regions: Record<string, unknown>[]
+  metrics: Record<string, unknown>
+  processing_ms: number
+  artifacts: Record<string, string>
+  warnings: string[]
+  limitations: string[]
+}
+
+export interface ModelInfo {
+  id: string
+  name: string
+  version: string
+  source: string
+  license: string
+  intended_use: string | null
+  output_semantics: string
+  provider: string
+}
+
+export interface AnalysisResult {
+  analysis_id: string
+  image: { width: number; height: number; source_format: string }
+  requested_methods: MethodId[]
+  results: MethodResult[]
+  artifact_ttl_seconds: number
+  report_json: string
+  disclaimer: string
+}
+
+export interface MethodCapability {
+  available: boolean
+  experimental: boolean
+  reason: string | null
+  model: ModelInfo | null
+  description: string
+}
+
+export interface Capabilities {
+  version: string
+  methods: Record<MethodId, MethodCapability>
+  invisible_watermark: MethodCapability
+  limits: Record<string, number>
+}
+
+export interface AnalyzeSettings extends DetectionSettings {
+  splicing_threshold: number
+  localization_threshold: number
+}
+
+// ---- invisible watermark -----------------------------------------------------------------
+export type InvisibleStrength = 'low' | 'standard' | 'high'
+
+export interface InvisibleEmbedResult {
+  watermark_id: string
+  algorithm: { name: string; version: string }
+  owner: string
+  integrity: string
+  metrics: { psnr_db: number; blocks: number; copies_per_bit: number; quantization_step: number }
+  output_format: 'png' | 'jpeg'
+  artifact: string
+  warnings: string[]
+  limitations: string[]
+}
+
+export interface InvisibleVerifyResult {
+  status: 'verified' | 'inconclusive' | 'not_detected'
+  status_reason: string
+  owner: string | null
+  integrity_verified: boolean
+  algorithm: { name: string; version: string }
+  metrics: Record<string, unknown>
+  processing_ms: number
+  warnings: string[]
+  limitations: string[]
+}

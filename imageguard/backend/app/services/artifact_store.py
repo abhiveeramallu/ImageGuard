@@ -11,6 +11,22 @@ ALLOWED_ARTIFACTS = {
     "report.json": ("application/json", "json"),
     "report.html": ("text/html; charset=utf-8", "html"),
 }
+_METHOD_ARTIFACT = re.compile(r"^(copy_move|splicing|localization)\.(annotated|mask|heatmap|overlay|score)$")
+EXTRA_ARTIFACTS = {"analysis.json": ("application/json", "json"),
+                   "watermarked.png": ("image/png", "png"), "watermarked.jpg": ("image/jpeg", "jpg")}
+
+
+def artifact_media(name: str) -> tuple[str, str] | None:
+    """Media type and extension for an allow-listed artifact name, else None."""
+    if name in ALLOWED_ARTIFACTS:
+        return ALLOWED_ARTIFACTS[name]
+    if name in EXTRA_ARTIFACTS:
+        return EXTRA_ARTIFACTS[name]
+    if _METHOD_ARTIFACT.match(name):
+        return "image/png", "png"
+    return None
+
+
 _ID_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 
 
@@ -41,7 +57,7 @@ class ArtifactStore:
             self._purge(now)
 
     def get(self, analysis_id: str, name: str) -> bytes | None:
-        if not _ID_RE.match(analysis_id) or name not in ALLOWED_ARTIFACTS:
+        if not _ID_RE.match(analysis_id) or artifact_media(name) is None:
             return None
         with self._lock:
             self._purge(time.time())

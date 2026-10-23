@@ -1,0 +1,389 @@
+{
+ "detection": {
+  "copy_move": {
+   "image_level": {
+    "n": 59,
+    "tp": 30,
+    "fp": 0,
+    "tn": 29,
+    "fn": 0,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "false_positive_rate": 0.0
+   },
+   "pixel_level_on_manipulated": {
+    "tp": 458203,
+    "fp": 16183,
+    "tn": 12466817,
+    "fn": 198797,
+    "precision": 0.966,
+    "recall": 0.697,
+    "f1": 0.81,
+    "iou": 0.681
+   },
+   "by_category": {
+    "clean": {
+     "n": 12,
+     "positive_rate": 0.0,
+     "mean_ms": 79.6,
+     "inconclusive_rate": 0.0
+    },
+    "clean_jpeg": {
+     "n": 12,
+     "positive_rate": 0.0,
+     "mean_ms": 56.7,
+     "inconclusive_rate": 0.0
+    },
+    "copy_move_jpeg": {
+     "n": 6,
+     "positive_rate": 1.0,
+     "mean_ms": 95.3,
+     "inconclusive_rate": 0.0,
+     "pixel": {
+      "tp": 102203,
+      "fp": 2383,
+      "tn": 2733617,
+      "fn": 41797,
+      "precision": 0.977,
+      "recall": 0.71,
+      "f1": 0.822,
+      "iou": 0.698
+     },
+     "mean_per_image_iou": 0.698
+    },
+    "copy_move_resized": {
+     "n": 6,
+     "positive_rate": 1.0,
+     "mean_ms": 77.7,
+     "inconclusive_rate": 0.0,
+     "pixel": {
+      "tp": 63367,
+      "fp": 4520,
+      "tn": 1534480,
+      "fn": 17633,
+      "precision": 0.933,
+      "recall": 0.782,
+      "f1": 0.851,
+      "iou": 0.741
+     },
+     "mean_per_image_iou": 0.741
+    },
+    "copy_move_rotation": {
+     "n": 6,
+     "positive_rate": 1.0,
+     "mean_ms": 98.9,
+     "inconclusive_rate": 0.0,
+     "pixel": {
+      "tp": 85326,
+      "fp": 1378,
+      "tn": 2734622,
+      "fn": 58674,
+      "precision": 0.984,
+      "recall": 0.593,
+      "f1": 0.74,
+      "iou": 0.587
+     },
+     "mean_per_image_iou": 0.587
+    },
+    "copy_move_scale": {
+     "n": 6,
+     "positive_rate": 1.0,
+     "mean_ms": 94.5,
+     "inconclusive_rate": 0.0,
+     "pixel": {
+      "tp": 97826,
+      "fp": 3149,
+      "tn": 2732851,
+      "fn": 46174,
+      "precision": 0.969,
+      "recall": 0.679,
+      "f1": 0.799,
+      "iou": 0.665
+     },
+     "mean_per_image_iou": 0.664
+    },
+    "copy_move_translation": {
+     "n": 6,
+     "positive_rate": 1.0,
+     "mean_ms": 96.8,
+     "inconclusive_rate": 0.0,
+     "pixel": {
+      "tp": 109481,
+      "fp": 4753,
+      "tn": 2731247,
+      "fn": 34519,
+      "precision": 0.958,
+      "recall": 0.76,
+      "f1": 0.848,
+      "iou": 0.736
+     },
+     "mean_per_image_iou": 0.736
+    },
+    "low_texture": {
+     "n": 2,
+     "positive_rate": 0.0,
+     "mean_ms": 1.2,
+     "inconclusive_rate": 1.0
+    },
+    "repeated_pattern": {
+     "n": 3,
+     "positive_rate": 0.0,
+     "mean_ms": 160.0,
+     "inconclusive_rate": 1.0
+    }
+   }
+  },
+  "splicing": {
+   "image_level": {
+    "n": 53,
+    "tp": 14,
+    "fp": 3,
+    "tn": 26,
+    "fn": 10,
+    "accuracy": 0.7547169811320755,
+    "precision": 0.8235294117647058,
+    "recall": 0.5833333333333334,
+    "false_positive_rate": 0.10344827586206896
+   },
+   "pixel_level_on_manipulated": {
+    "tp": 196618,
+    "fp": 15004,
+    "tn": 6909704,
+    "fn": 251474,
+    "precision": 0.929,
+    "recall": 0.439,
+    "f1": 0.596,
+    "iou": 0.425
+   },
+   "by_category": {
+    "clean": {
+     "n": 12,
+     "positive_rate": 0.083,
+     "mean_ms": 14.3,
+     "inconclusive_rate": 0.0
+    },
+    "clean_jpeg": {
+     "n": 12,
+     "positive_rate": 0.167,
+     "mean_ms": 21.7,
+     "inconclusive_rate": 0.0
+    },
+    "low_texture": {
+     "n": 2,
+     "positive_rate": 0.0,
+     "mean_ms": 1.1,
+     "inconclusive_rate": 1.0
+    },
+    "repeated_pattern": {
+     "n": 3,
+     "positive_rate": 0.0,
+     "mean_ms": 11.3,
+     "inconclusive_rate": 0.0
+    },
+    "splice_different_noise": {
+     "n": 6,
+     "positive_rate": 1.0,
+     "mean_ms": 10.6,
+     "inconclusive_rate": 0.0,
+     "pixel": {
+      "tp": 74696,
+      "fp": 425,
+      "tn": 1717975,
+      "fn": 50104,
+      "precision": 0.994,
+      "recall": 0.599,
+      "f1": 0.747,
+      "iou": 0.596
+     },
+     "mean_per_image_iou": 0.597
+    },
+    "splice_different_noise_jpeg": {
+     "n": 6,
+     "positive_rate": 1.0,
+     "mean_ms": 21.2,
+     "inconclusive_rate": 0.0,
+     "pixel": {
+      "tp": 121922,
+      "fp": 12476,
+      "tn": 1705924,
+      "fn": 2878,
+      "precision": 0.907,
+      "recall": 0.977,
+      "f1": 0.941,
+      "iou": 0.888
+     },
+     "mean_per_image_iou": 0.889
+    },
+    "splice_matched_noise": {
+     "n": 6,
+     "positive_rate": 0.0,
+     "mean_ms": 10.5,
+     "inconclusive_rate": 0.0,
+     "pixel": {
+      "tp": 0,
+      "fp": 0,
+      "tn": 1743954,
+      "fn": 99246,
+      "precision": null,
+      "recall": 0.0,
+      "f1": 0.0,
+      "iou": 0.0
+     },
+     "mean_per_image_iou": 0.0
+    },
+    "splice_matched_noise_jpeg": {
+     "n": 6,
+     "positive_rate": 0.333,
+     "mean_ms": 21.5,
+     "inconclusive_rate": 0.0,
+     "pixel": {
+      "tp": 0,
+      "fp": 2103,
+      "tn": 1741851,
+      "fn": 99246,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "iou": 0.0
+     },
+     "mean_per_image_iou": 0.0
+    }
+   }
+  }
+ },
+ "localization": {
+  "available": false,
+  "reason": "No localization model is configured. Obtain an image-manipulation localization model exported to ONNX, write its JSON model card (see docs/MODELS.md), then set IMAGEGUARD_LOCALIZATION_MODEL_PATH.",
+  "model": null
+ },
+ "watermark": {
+  "n_images": 6,
+  "mean_psnr_db": 44.77,
+  "transforms": {
+   "none (in-memory)": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "jpeg_q95": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "jpeg_q85": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "jpeg_q75": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "jpeg_q60": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "jpeg_q40": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "jpeg_q25": {
+    "verified": 0,
+    "exact_payload": 0,
+    "integrity_verified_rate": 0.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "gaussian_noise_sigma2": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "gaussian_noise_sigma5": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "gaussian_noise_sigma10": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "crop_13_7_px": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "crop_5%_each_side": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "resize_0.9": {
+    "verified": 0,
+    "exact_payload": 0,
+    "integrity_verified_rate": 0.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "resize_0.75": {
+    "verified": 0,
+    "exact_payload": 0,
+    "integrity_verified_rate": 0.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "resize_up_1.25": {
+    "verified": 0,
+    "exact_payload": 0,
+    "integrity_verified_rate": 0.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "rotate_2deg": {
+    "verified": 0,
+    "exact_payload": 0,
+    "integrity_verified_rate": 0.0,
+    "inconclusive": 0,
+    "n": 6
+   },
+   "gaussian_blur_sigma1": {
+    "verified": 6,
+    "exact_payload": 6,
+    "integrity_verified_rate": 1.0,
+    "inconclusive": 0,
+    "n": 6
+   }
+  },
+  "unmarked_false_verified": 0,
+  "wrong_key_verified": 0
+ },
+ "n_cases": 83,
+ "synthetic_only": true
+}

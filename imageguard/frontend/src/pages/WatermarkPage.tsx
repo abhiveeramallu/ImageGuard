@@ -4,6 +4,7 @@ import Alert from '../components/Alert'
 import ImageDropzone from '../components/ImageDropzone'
 import ImageSummary from '../components/ImageSummary'
 import Segmented from '../components/Segmented'
+import InvisibleWatermarkPanel from '../components/InvisibleWatermarkPanel'
 import WatermarkControls from '../components/WatermarkControls'
 import ZoomableImage from '../components/ZoomableImage'
 import { useBlobUrls } from '../hooks/useBlobUrls'
@@ -16,7 +17,26 @@ type View = 'original' | 'processed' | 'compare'
 const LIVE_MAX_BYTES = 3 * 1024 * 1024
 const LOGO_MAX_BYTES = 2 * 1024 * 1024
 
+type Mode = 'visible' | 'invisible'
+
 export default function WatermarkPage() {
+  const [mode, setMode] = useState<Mode>('visible')
+  return (
+    <div className="space-y-5">
+      <header>
+        <h1 className="text-2xl font-bold text-ink-900">Watermark Studio</h1>
+        <p className="mt-1 max-w-3xl text-sm text-slate-600">
+          <b>Visible</b> watermarks overlay text or a logo. <b>Invisible</b> watermarks hide a keyed payload in the image data so it can be verified later. They are separate tools.
+        </p>
+      </header>
+      <Segmented label="Watermark kind" value={mode} onChange={setMode}
+        options={[{ value: 'visible', label: 'Visible watermark' }, { value: 'invisible', label: 'Invisible watermark' }]} />
+      {mode === 'visible' ? <VisibleStudio /> : <InvisibleWatermarkPanel />}
+    </div>
+  )
+}
+
+function VisibleStudio() {
   const { image, error: fileError, select, clear } = useImageFile()
   const [settings, setSettings] = useState<WatermarkSettings>(DEFAULT_WATERMARK_SETTINGS)
   const [logo, setLogo] = useState<File | null>(null)
@@ -84,12 +104,10 @@ export default function WatermarkPage() {
 
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="text-2xl font-bold text-ink-900">Watermark Studio</h1>
-        <p className="mt-1 max-w-3xl text-sm text-slate-600">
-          Add a visible text or logo watermark. Image dimensions are preserved. Rendering happens on the server; uploads are processed in memory and not stored.
-        </p>
-      </header>
+      <p className="max-w-3xl text-sm text-slate-600">
+        Add a visible text or logo watermark. Image dimensions are preserved. Rendering happens on the server; uploads are processed in memory and not stored.
+        A visible watermark can be cropped or edited out and does not prove authenticity.
+      </p>
 
       {!image ? <ImageDropzone onFile={onFile} error={fileError} label="Drag & drop the image to watermark" /> : (
         <>

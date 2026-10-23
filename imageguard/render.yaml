@@ -16,5 +16,7 @@ services:
         value: production
       - key: IMAGEGUARD_MAX_IMAGE_PIXELS
         value: "8000000"   # keeps peak memory within a ~512 MB instance (see docs/TESTING.md)
+      - key: IMAGEGUARD_WATERMARK_KEY
+        sync: false   # secret: set in the dashboard (docs/DEPLOYMENT.md)
       - key: IMAGEGUARD_CORS_ORIGINS
         sync: false   # set to your exact frontend URL, e.g. https://your-app.vercel.app

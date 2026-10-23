@@ -11,7 +11,7 @@ All errors use `{"error": {"code": "...", "message": "..."}}`.
 | 415 | `unsupported_format` |
 | 422 | `invalid_parameters`, `image_too_small`, `watermark_too_large`, `too_many_tiles` |
 | 429 | `rate_limited` |
-| 503 | `server_busy` |
+| 503 | `server_busy`, `watermark_unavailable` (no server key) |
 
 ## `GET /api/health`
 `{"status": "ok", "version": "1.0.0"}`
@@ -76,3 +76,47 @@ There is deliberately **no confidence or probability field**. `region_a`/`region
 ## `GET /api/results/{analysis_id}/{artifact_name}`
 `artifact_name` ∈ `annotated`, `mask`, `heatmap` (PNG), `report.json`, `report.html`. IDs are random (128-bit); names are allow-listed;
 nothing touches the filesystem. Artifacts live in server memory and expire after `IMAGEGUARD_ARTIFACT_TTL_SECONDS` (default 900) → 404 afterwards.
+
+
+---
+# Added in 1.1
+
+## `GET /api/capabilities`
+What this server can do right now: `methods.{copy_move,splicing,localization}` (`available`, `experimental`, `reason`, `model`) and `invisible_watermark`.
+Localization is unavailable until a model is configured (docs/MODELS.md); invisible watermarking is unavailable until `IMAGEGUARD_WATERMARK_KEY` is set.
+
+## `POST /api/detect/analyze` (multipart/form-data)
+`file`, `methods` (comma list of `copy_move`, `splicing`, `localization`, or `all_supported`; default `copy_move`), `splicing_threshold` (0.05–0.99, 0.5),
+`localization_threshold` (0.01–0.99, 0.5), and the copy-move settings `max_dimension`, `n_features`, `ratio`, `min_matches`, `min_displacement`.
+`POST /api/detect/copy-move` is unchanged.
+
+```bash
+curl -X POST localhost:8000/api/detect/analyze -F file=@suspect.jpg -F methods=all_supported
+```
+Response: `{analysis_id, image, requested_methods, results: [MethodResult], artifact_ttl_seconds, report_json, disclaimer}`. Each `MethodResult`:
+
+| field | meaning |
+|---|---|
+| `method`, `category` | `copy_move`/`splicing`/`localization`; `copy_move`/`splicing`/`local_manipulation` |
+| `evidence_type` | `feature_match_regions` (approximate hulls), `heuristic_forensic_map` (normalised score, not a probability), `model_probability_map` |
+| `status` | `candidate_regions_found`, `no_candidate_regions_found`, `inconclusive`, **`unavailable`** (e.g. no model), **`failed`** |
+| `experimental`, `model` | `true` for the splicing heuristic; model card details for localization |
+| `threshold`, `threshold_semantics`, `region_count`, `regions`, `metrics`, `processing_ms` | computed values only |
+| `artifacts` | URLs such as `/api/results/{id}/splicing.mask` (`annotated`/`overlay`/`mask`/`heatmap`/`score`); empty when unavailable/failed |
+
+Methods are independent: there is no combined score, and a missing finding is never reported as "genuine". Failures/unavailability of one method do not affect the others.
+
+## `GET /api/results/{analysis_id}/{method}/layer?threshold=0.5`
+`method` ∈ `splicing`, `localization`. Re-applies a threshold to the stored 16-bit score map and returns a transparent red RGBA PNG (+ header `X-Region-Count`).
+
+Artifact names: `{method}.{annotated|overlay|mask|heatmap|score}`, `analysis.json`, `watermarked.png|jpg` (plus the 1.0 names).
+
+## `POST /api/watermark/invisible/embed` (multipart/form-data)
+`file`, `owner` (1–12 printable ASCII chars; the payload), `strength` (`low`|`standard`|`high`), `output_format` (`png`|`jpeg`). Returns
+`{watermark_id, algorithm, owner, integrity, metrics{psnr_db, blocks, copies_per_bit, quantization_step}, output_format, artifact, warnings, limitations}`;
+download the image from `artifact`. 503 `watermark_unavailable` if no key is configured.
+
+## `POST /api/watermark/invisible/verify` (multipart/form-data)
+`file` → `{status: verified|inconclusive|not_detected, status_reason, owner, integrity_verified, algorithm, metrics, processing_ms, warnings, limitations}`.
+`verified` = a payload whose HMAC (made with the server key) is valid was recovered. `inconclusive` = watermark-like signal with a valid header but failed check.
+Neither status proves ownership or image integrity.

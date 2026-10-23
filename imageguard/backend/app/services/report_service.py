@@ -67,3 +67,11 @@ img{{max-width:100%}}figure{{margin:1rem 0}}.note{{background:#fff7e0;border:1px
 
 def _box(b: dict) -> str:
     return f"{b['x']}, {b['y']}, {b['width']}, {b['height']}"
+
+
+def build_analysis_report(result: dict, filename: str | None) -> dict:
+    return {"report_generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "uploaded_filename": filename,
+            "disclaimer": ("Each method below is independent. Detector output is evidence for human review, not proof of manipulation, "
+                           "and the absence of findings is not proof of authenticity. Heuristic and model scores are not combined."),
+            **result}

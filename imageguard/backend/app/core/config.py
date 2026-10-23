@@ -1,9 +1,10 @@
 """Application settings, read from environment variables (prefix IMAGEGUARD_)."""
 from functools import lru_cache
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 
 
 class Settings(BaseSettings):
@@ -25,6 +26,18 @@ class Settings(BaseSettings):
     artifact_ttl_seconds: int = 900
     artifact_max_entries: int = 40
     artifact_max_bytes: int = 256 * 1024 * 1024
+
+    # Invisible watermark: server-side secret (never sent to clients). Unset => feature unavailable.
+    watermark_key: SecretStr | None = None
+    watermark_min_pixels: int = 256 * 256
+
+    # Model-based localization (ONNX). Unset path => reported as unavailable, never mocked.
+    localization_model_path: str | None = None
+    localization_model_config: str | None = None  # defaults to <model>.json
+    model_device: str = "auto"  # "auto" | "cpu" | "cuda"
+    model_threads: int = 2
+    inference_timeout_seconds: float = 60.0
+    inference_max_side: int = 1024
 
     # Throughput protection
     max_concurrent_jobs: int = 2

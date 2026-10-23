@@ -1,3 +1,6 @@
+import os
+
+os.environ.setdefault("IMAGEGUARD_RATE_LIMIT_PER_MINUTE", "0")  # tests post far more than 60 requests/min
 import io
 
 import numpy as np

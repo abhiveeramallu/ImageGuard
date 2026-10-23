@@ -1,90 +1,77 @@
 # ImageGuard — Image Forgery Detection & Watermarking
 
-A web app with two modules:
+A web app (React + FastAPI + OpenCV) for **detecting candidate image manipulation** and **watermarking images**. Detection results are evidence for human review, never proof of forgery or authenticity.
 
-* **Watermark Studio** – visible text or logo watermarks (position, opacity, size, colour, rotation, margin, single/tiled, outline/shadow), live preview, original-vs-result comparison, PNG/JPEG download.
-* **Forgery Detection** – an explainable **copy-move** detector (ORB + Hamming matching + RANSAC). It returns an annotated image, a candidate-region mask, a match-density overlay, region coordinates, match statistics, timing, and JSON/HTML reports.
+## Feature status
+| Feature | Status |
+|---|---|
+| Visible text/logo watermark (position, opacity, size, colour, rotation, margin, tiling, outline/shadow, live preview, PNG/JPEG) | **Implemented & tested** |
+| Copy-move detection (ORB + Hamming + RANSAC; annotated image, mask, heatmap, JSON/HTML report) | **Implemented & tested** |
+| Invisible watermark: embed + HMAC-checked verify (DCT-QIM), downloadable output | **Implemented & tested** (synthetic robustness results below) |
+| Multi-method analysis API/UI (copy-move, splicing, localization, all supported) with independent results and threshold re-rendering | **Implemented & tested** |
+| Splicing / local-inconsistency detection | **Experimental heuristic** (noise-residual + JPEG ELA). Not a trained or validated detector |
+| Model-based pixel-level localization (ONNX Runtime + model card contract, probability map, mask, overlay, heatmap, adjustable threshold) | **Implemented, awaiting real weights.** Reports `unavailable` until a model is configured; pipeline verified with generated untrained ONNX graphs only. See [docs/MODELS.md](docs/MODELS.md) |
+| Evaluation on real photographs / public datasets | **Not done** |
+| Cryptographic proof of ownership, resize/rotation-robust invisible watermarks, AI-generated-content detection | **Not implemented** |
 
-It is a heuristic baseline. It reports *candidates for review*; it does not prove an image is forged or authentic. See [Limitations](#known-limitations).
-
-## Features (all implemented)
-* Upload validation by decoded content, size / pixel / dimension limits, decompression-bomb guard, EXIF orientation, RGB/RGBA/grayscale/palette handling.
-* Real processing for every number shown — no placeholder results, no confidence scores.
-* Typed API client, upload progress, cancellation, timeouts, retry, empty/error states, zoomable viewers, responsive layout.
-* In-memory results with TTL (nothing written to disk), random IDs and allow-listed artifact names.
-* Server-side validation of every option, restricted CORS, per-IP rate limit, concurrency cap.
-
-## Stack
-React 19 + Vite + TypeScript + Tailwind 3 + Lucide · FastAPI + Uvicorn · OpenCV (headless) · Pillow · NumPy · Pydantic · pytest · Vitest.
-
-## Repository layout
-```
-backend/app/{main.py, api/, schemas/, core/, services/}   backend/tests/
-frontend/src/{pages, components, hooks, services, types, utils}
-docs/{ARCHITECTURE,API,TESTING,DEPLOYMENT}.md   scripts/   render.yaml
-```
-
-## Prerequisites
-Python 3.11–3.13 (developed on 3.12; OpenCV wheels may lag on newer Pythons) and Node 20+.
-
-## Local setup and run
+## Quick start
 ```bash
-scripts/setup.sh            # venv + backend deps + frontend deps + .env files
-scripts/dev-backend.sh      # http://localhost:8000  (docs at /api/docs)
+scripts/setup.sh            # venvs, deps, .env files (generates a local random IMAGEGUARD_WATERMARK_KEY)
+scripts/dev-backend.sh      # http://localhost:8000  (API docs: /api/docs)
 scripts/dev-frontend.sh     # http://localhost:5173
 ```
-Manual equivalents:
-```bash
-cd backend && python3.12 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-.venv/bin/uvicorn app.main:app --reload --port 8000
-cd frontend && npm install && npm run dev
-```
+Manual: `cd backend && python3.12 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt && .venv/bin/uvicorn app.main:app --reload`; `cd frontend && npm ci && npm run dev`.
+Prerequisites: Python 3.11–3.13, Node 20+.
 
-## Configuration
-Backend (`backend/.env`, prefix `IMAGEGUARD_`): `ENVIRONMENT`, `CORS_ORIGINS`, `MAX_UPLOAD_BYTES` (10 MB), `MAX_IMAGE_PIXELS` (16 MP), `MAX_IMAGE_SIDE` (8000), `ARTIFACT_TTL_SECONDS` (900), `MAX_CONCURRENT_JOBS` (2), `RATE_LIMIT_PER_MINUTE` (60). Frontend (`frontend/.env`): `VITE_API_URL`.
+## Configuration (`backend/.env`, prefix `IMAGEGUARD_`)
+`ENVIRONMENT`, `CORS_ORIGINS`, `MAX_UPLOAD_BYTES` (10 MB), `MAX_IMAGE_PIXELS` (16 MP), `MAX_IMAGE_SIDE`, `ARTIFACT_TTL_SECONDS` (900), `MAX_CONCURRENT_JOBS`, `RATE_LIMIT_PER_MINUTE`,
+**`WATERMARK_KEY`** (secret, required for invisible watermarking; server-side only), `LOCALIZATION_MODEL_PATH` / `LOCALIZATION_MODEL_CONFIG` (optional), `MODEL_DEVICE` (`auto|cpu|cuda`), `MODEL_THREADS`, `INFERENCE_TIMEOUT_SECONDS`, `INFERENCE_MAX_SIDE`.
+Frontend (`frontend/.env`): `VITE_API_URL`.
+
+## Detection methods (kept separate, never merged into one score)
+1. **Copy-move (ORB)** — finds regions duplicated within one image. `evidence_type: feature_match_regions` (approximate hulls, not pixel-level).
+2. **Splicing heuristic (experimental)** — flags regions whose local noise level (and, for JPEG, error level) deviates from the rest. `heuristic_forensic_map`: a normalised score, not a probability.
+3. **Model localization** — a configured ONNX model produces a per-pixel map interpreted according to its declared model card. `model_probability_map`. Unavailable without a model; never mocked.
+
+Statuses: `candidate_regions_found`, `no_candidate_regions_found`, `inconclusive`, `unavailable`, `failed`. "No candidates" never means "authentic".
+
+## Invisible watermark
+Payload (owner string ≤ 12 ASCII chars) + version + 32-bit truncated HMAC-SHA256 made with the server key → 144 bits, spread over 8×8 luminance DCT blocks by quantization index modulation (3 mid-frequency coefficients/block, key-permuted bit layout). Verification searches block-grid offsets, quantization steps and class shifts (small crops) and accepts a payload only if its HMAC verifies.
+**A valid result means someone holding the server key embedded that payload — not proof of ownership, authorship or image integrity.** Key management: generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"`, keep it secret and backed up; rotating it makes old watermarks unverifiable. Use PNG output to preserve it.
+
+Measured on 6 synthetic 640×480 images (see docs/TESTING.md): recovered after JPEG q95–q40, noise σ≤10, small crops, blur σ=1; **not** recovered after JPEG q25, resizing or rotation. Distortion: mean PSNR 44.8 dB.
 
 ## API
-Summary — full reference with examples in [docs/API.md](docs/API.md):
-`GET /api/health` · `POST /api/watermark` · `POST /api/detect/copy-move` · `GET /api/results/{analysis_id}/{artifact_name}` · `GET /api/docs` (non-production).
+Summary — details and examples in [docs/API.md](docs/API.md): `GET /api/health`, `GET /api/capabilities`, `POST /api/watermark`, `POST /api/watermark/invisible/{embed,verify}`, `POST /api/detect/copy-move`, `POST /api/detect/analyze`, `GET /api/results/{id}/{artifact}`, `GET /api/results/{id}/{method}/layer?threshold=`.
+```bash
+curl -X POST localhost:8000/api/detect/analyze -F file=@suspect.jpg -F methods=all_supported
+curl -X POST localhost:8000/api/watermark/invisible/embed -F file=@photo.png -F owner=Acme-2026 -F strength=standard
+```
 
-## How the watermark works
-Decode (+EXIF) → render text (Pillow, DejaVu/Arial/bundled fallback) or scale the logo (premultiplied-alpha resize, so transparent edges stay clean) into a transparent RGBA stamp → apply opacity to the alpha channel only → rotate with transparent fill → alpha-composite onto the image at the chosen anchor (or on a staggered grid when tiled), clipped to the image → encode. Dimensions never change. Font size, stamp area and tile count are capped.
-
-## How copy-move detection works
-1. Grayscale analysis copy, downscaled to `max_dimension` if needed (coordinates are mapped back).
-2. ORB keypoints + 256-bit descriptors.
-3. For each descriptor, find nearest neighbours by Hamming distance, **excluding itself and anything closer than `min_displacement` px**; keep it if the best match passes Lowe's ratio test and a max-distance cap; merge symmetric duplicates.
-4. Sequential RANSAC fits similarity transforms (shift, rotation, uniform scale); matches agreeing on one transform form a cluster.
-5. Clusters are rejected if too small, too tightly packed, overlapping themselves, or implausibly scaled; survivors are localized by padded convex hulls of matched keypoints (region A / region B — the method cannot tell original from copy).
-6. Artifacts: annotated image, binary mask, match-density heatmap, JSON/HTML report.
-
-Status: `candidate_regions_found` (≥ 1 cluster passed), `no_candidate_regions_found`, or `inconclusive` (too few keypoints, or ≥ 6 distinct clusters suggesting repetitive texture).
-
-## Interpreting results
-* Counts are evidence volume, not probabilities. Review highlighted regions by eye.
-* “No candidates” means *this method found nothing*, not that the image is authentic.
-* Heatmap = density of retained matched keypoints; mask = approximate hulls, not pixel-exact tampering masks.
-
-## Known limitations
-Detects only duplication within one image. Misses smooth/low-texture copies, strong resize/rotation/blur/recompression, heavily post-processed clones. Can flag repeated natural or man-made patterns. Localization is approximate. Parameters were tuned on synthetic images only; no real-photo accuracy has been measured. Artifact store and rate limiter are per-process (single worker).
-
-### How related techniques differ
-| Technique | Meaning | In this app |
-|---|---|---|
-| Copy-move detection | Regions duplicated within one image | Implemented (baseline) |
-| Splicing detection | Content pasted from another image | Not implemented |
-| Pixel-level tampering localization | Per-pixel altered/unaltered map (usually a trained model) | Not implemented; regions are approximate |
-| Visible watermarking | Overlay text/logo | Implemented; deters reuse, can be cropped/removed, proves nothing about authenticity |
-| Invisible watermarking | Hidden embedded signal | Not implemented |
-
-## Tests
-`scripts/test-all.sh` — details and measured results in [docs/TESTING.md](docs/TESTING.md).
+## Tests and evaluation
+```bash
+scripts/test-all.sh
+cd backend && .venv/bin/python -m evaluation.run
+```
+Latest: backend 117 passed, frontend 42 passed, typecheck/build pass. Synthetic evaluation numbers and their caveats are in [docs/TESTING.md](docs/TESTING.md) and `backend/evaluation/results/summary.md` (generated by the script; not hand-written). Synthetic results do not demonstrate real-world forensic accuracy.
 
 ## Verification performed
-Backend and frontend were run locally; in a browser, a synthetic forged PNG was uploaded and analysed through the UI (real candidate regions rendered), the Watermark Studio live preview and tiled layout rendered real backend output, and invalid/unsupported files showed errors. Nothing has been deployed.
+In a browser against the running backend: a synthetic forged image analysed with all supported methods (copy-move, splicing, and localization using a generated *pipeline-test* ONNX model that is not a forensic model), per-method results and the threshold slider; invisible watermark embed → real download artifact → verify (verified with payload and valid HMAC) and an unmarked image (not detected); visible watermark preview/tiling; invalid files. One integration bug found this way (CORS did not expose `X-Region-Count`) was fixed and covered by a test. Nothing has been deployed.
+
+## Known limitations
+Copy-move only finds duplication in one image and can flag repeated patterns; the splicing heuristic misses matched-noise composites and false-alarms on some clean images; no trained forensic model has been run; heuristics were tuned on synthetic data; the invisible watermark does not survive resizing/rotation/heavy compression and is removable by a determined attacker; artifact store and rate limiter are per-process (single worker); lint uses oxlint with 2 known warnings.
+
+## Related techniques
+| Technique | In this app |
+|---|---|
+| Copy-move detection | Implemented (ORB baseline) |
+| Splicing detection | Experimental heuristic only |
+| Pixel-level tampering localization | Model integration ready; no weights bundled; ORB regions and heuristic maps are *not* pixel-level |
+| Visible watermarking | Implemented; can be cropped/removed; proves nothing |
+| Invisible watermarking | Implemented (keyed DCT-QIM + HMAC); limited robustness |
 
 ## Deployment
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (Render for the API via `render.yaml`, Vercel for the frontend via `frontend/vercel.json`).
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (Render via `render.yaml`, Vercel via `frontend/vercel.json`). Set `IMAGEGUARD_WATERMARK_KEY` as a secret. Not deployed or verified on those hosts.
 
-## Future improvements
-Trained segmentation model behind the same response schema; SIFT/AKAZE or dense-field (PatchMatch) matching for resized/low-texture copies; evaluation on CASIA/CoMoFoD-style benchmarks to calibrate thresholds; shared artifact storage (Redis/S3) for multi-worker hosting; invisible watermarking; browser E2E tests.
+## Next steps
+Obtain and license-check a real manipulation-localization model and evaluate it on real datasets; evaluate the heuristics on real photographs; stronger invisible-watermark synchronisation (resize/rotation) and error-correcting codes; shared artifact storage for multi-worker hosting; browser E2E tests.

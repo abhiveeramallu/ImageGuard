@@ -1,6 +1,7 @@
 import axios, { AxiosError, type AxiosProgressEvent } from 'axios'
 import type {
-  DetectionResult, DetectionSettings, DetectionStatus, WatermarkResult, WatermarkSettings,
+  AnalysisResult, AnalyzeSettings, Capabilities, DetectionResult, DetectionSettings, DetectionStatus, InvisibleEmbedResult,
+  InvisibleStrength, InvisibleVerifyResult, MethodId, WatermarkResult, WatermarkSettings,
 } from '../types/api'
 
 export const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://localhost:8000'
@@ -94,4 +95,77 @@ export async function applyWatermark(
 
 export function isCancelled(err: unknown): boolean {
   return err instanceof ApiRequestError && err.code === 'cancelled'
+}
+
+// ---- capabilities / multi-method analysis / invisible watermark ---------------------------------
+export async function getCapabilities(signal?: AbortSignal): Promise<Capabilities> {
+  try {
+    const res = await http.get('/api/capabilities', { signal, timeout: 15_000 })
+    const c = res.data as Partial<Capabilities>
+    if (!c?.methods?.copy_move || !c.invisible_watermark) throw new ApiRequestError('The server returned an unexpected response.', 'bad_response')
+    return c as Capabilities
+  } catch (err) {
+    throw err instanceof ApiRequestError ? err : await toApiError(err)
+  }
+}
+
+export async function analyzeImage(
+  file: File, methods: MethodId[], settings: AnalyzeSettings, opts: CallOptions = {},
+): Promise<AnalysisResult> {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('methods', methods.join(','))
+  Object.entries(settings).forEach(([k, v]) => form.append(k, String(v)))
+  try {
+    const res = await http.post('/api/detect/analyze', form, { signal: opts.signal, timeout: 180_000, onUploadProgress: progress(opts.onProgress) })
+    const d = res.data as Partial<AnalysisResult>
+    if (!d?.analysis_id || !Array.isArray(d.results)) throw new ApiRequestError('The server returned an unexpected response.', 'bad_response')
+    return d as AnalysisResult
+  } catch (err) {
+    throw err instanceof ApiRequestError ? err : await toApiError(err)
+  }
+}
+
+export async function fetchThresholdLayer(
+  analysisId: string, method: MethodId, threshold: number, signal?: AbortSignal,
+): Promise<{ blob: Blob; regionCount: number }> {
+  try {
+    const res = await http.get(`/api/results/${analysisId}/${method}/layer`, {
+      params: { threshold }, responseType: 'blob', signal, timeout: 30_000,
+    })
+    return { blob: res.data as Blob, regionCount: Number(res.headers['x-region-count'] ?? 0) }
+  } catch (err) {
+    throw await toApiError(err)
+  }
+}
+
+export async function embedInvisible(
+  file: File, owner: string, strength: InvisibleStrength, outputFormat: 'png' | 'jpeg', opts: CallOptions = {},
+): Promise<InvisibleEmbedResult> {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('owner', owner)
+  form.append('strength', strength)
+  form.append('output_format', outputFormat)
+  try {
+    const res = await http.post('/api/watermark/invisible/embed', form, { signal: opts.signal, timeout: 60_000, onUploadProgress: progress(opts.onProgress) })
+    const d = res.data as Partial<InvisibleEmbedResult>
+    if (!d?.artifact || !d.metrics) throw new ApiRequestError('The server returned an unexpected response.', 'bad_response')
+    return d as InvisibleEmbedResult
+  } catch (err) {
+    throw err instanceof ApiRequestError ? err : await toApiError(err)
+  }
+}
+
+export async function verifyInvisible(file: File, opts: CallOptions = {}): Promise<InvisibleVerifyResult> {
+  const form = new FormData()
+  form.append('file', file)
+  try {
+    const res = await http.post('/api/watermark/invisible/verify', form, { signal: opts.signal, timeout: 120_000, onUploadProgress: progress(opts.onProgress) })
+    const d = res.data as Partial<InvisibleVerifyResult>
+    if (!d?.status) throw new ApiRequestError('The server returned an unexpected response.', 'bad_response')
+    return d as InvisibleVerifyResult
+  } catch (err) {
+    throw err instanceof ApiRequestError ? err : await toApiError(err)
+  }
 }

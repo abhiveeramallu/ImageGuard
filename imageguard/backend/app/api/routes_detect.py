@@ -9,7 +9,7 @@ from app.core.errors import ApiError
 from app.schemas.detection import DetectionResponse
 from app.services import image_service as imgs
 from app.services import report_service
-from app.services.artifact_store import ALLOWED_ARTIFACTS
+from app.services.artifact_store import artifact_media
 from app.services.copy_move_service import (
     LIMITATIONS, METHOD_NAME, METHOD_VERSION, CopyMoveParams, detect_copy_move,
 )
@@ -98,10 +98,12 @@ def get_artifact(analysis_id: str, artifact_name: str) -> Response:
     body = store.get(analysis_id, artifact_name)
     if body is None:
         raise ApiError(404, "not_found", "Result not found or expired. Re-run the analysis.")
-    media, ext = ALLOWED_ARTIFACTS[artifact_name]
+    media, ext = artifact_media(artifact_name)  # type: ignore[misc]  # store.get() returned data, so the name is allow-listed
     headers = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
-    if ext in ("json", "html"):
+    if artifact_name.startswith("watermarked"):
+        headers["Content-Disposition"] = f'attachment; filename="imageguard-watermarked.{ext}"'
+    elif ext in ("json", "html"):
         headers["Content-Disposition"] = f'attachment; filename="imageguard-report.{ext}"'
-        if ext == "html":
-            headers["Content-Security-Policy"] = "default-src 'none'; img-src data:; style-src 'unsafe-inline'"
+    if ext == "html":
+        headers["Content-Security-Policy"] = "default-src 'none'; img-src data:; style-src 'unsafe-inline'"
     return Response(content=body, media_type=media, headers=headers)

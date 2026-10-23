@@ -29,3 +29,38 @@ export function detectionResult(over: Partial<DetectionResult> = {}): DetectionR
     ...over,
   }
 }
+
+import type { AnalysisResult, Capabilities, MethodResult } from '../types/api'
+
+export function capabilities(over: Partial<Capabilities> = {}): Capabilities {
+  return {
+    version: '1.1.0',
+    methods: {
+      copy_move: { available: true, experimental: false, reason: null, model: null, description: 'ORB' },
+      splicing: { available: true, experimental: true, reason: null, model: null, description: 'heuristic' },
+      localization: { available: false, experimental: false, reason: 'No localization model is configured.', model: null, description: 'model' },
+    },
+    invisible_watermark: { available: true, experimental: false, reason: null, model: null, description: 'dct' },
+    limits: {},
+    ...over,
+  }
+}
+
+export function methodResult(over: Partial<MethodResult> = {}): MethodResult {
+  return {
+    method: 'splicing', category: 'splicing', evidence_type: 'heuristic_forensic_map', status: 'candidate_regions_found',
+    status_reason: '1 region(s) have noise statistics that differ.', method_name: 'noise-ela-heuristic', method_version: '0.1.0-experimental',
+    experimental: true, model: null, threshold: 0.5, threshold_semantics: 'normalised heuristic score (not a probability)',
+    region_count: 1, regions: [{ id: 1, area_px: 5000, bbox: { x: 10, y: 20, width: 50, height: 60 } }],
+    metrics: { max_score: 1, flagged_area_fraction: 0.02 }, processing_ms: 42,
+    artifacts: { heatmap: '/h', mask: '/m', overlay: '/o', score: '/s' }, warnings: [], limitations: ['Experimental heuristic.'], ...over,
+  }
+}
+
+export function analysisResult(results: MethodResult[], over: Partial<AnalysisResult> = {}): AnalysisResult {
+  return {
+    analysis_id: 'an1', image: { width: 800, height: 600, source_format: 'PNG' }, requested_methods: results.map((r) => r.method),
+    results, artifact_ttl_seconds: 900, report_json: '/api/results/an1/analysis.json',
+    disclaimer: 'Each method below is independent.', ...over,
+  }
+}

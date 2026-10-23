@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import routes_detect, routes_health, routes_watermark
+from app.api import (routes_analyze, routes_capabilities, routes_detect, routes_health, routes_invisible,
+                     routes_watermark)
 from app.core.config import APP_VERSION, get_settings
 from app.core.errors import install_error_handlers
 from app.core.ratelimit import RateLimitMiddleware
@@ -23,8 +24,11 @@ app.add_middleware(
     allow_origins=settings.cors_origin_list,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition"],
+    expose_headers=["Content-Disposition", "X-Region-Count"],
 )
 app.include_router(routes_health.router, prefix="/api")
 app.include_router(routes_watermark.router, prefix="/api")
 app.include_router(routes_detect.router, prefix="/api")
+app.include_router(routes_analyze.router, prefix="/api")
+app.include_router(routes_capabilities.router, prefix="/api")
+app.include_router(routes_invisible.router, prefix="/api")

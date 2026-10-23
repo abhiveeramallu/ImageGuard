@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiRequestError } from '../services/api'
-import { png } from '../test/helpers'
+import { capabilities, png } from '../test/helpers'
 import WatermarkPage from './WatermarkPage'
 
-const api = vi.hoisted(() => ({ applyWatermark: vi.fn() }))
+const api = vi.hoisted(() => ({ applyWatermark: vi.fn(), getCapabilities: vi.fn() }))
 vi.mock('../services/api', async (orig) => ({ ...(await orig<typeof import('../services/api')>()), ...api }))
 const files = vi.hoisted(() => ({ downloadBlob: vi.fn() }))
 vi.mock('../utils/files', async (orig) => ({
@@ -21,6 +21,7 @@ const lastCall = () => api.applyWatermark.mock.calls.at(-1)!
 
 beforeEach(() => {
   vi.clearAllMocks()
+  api.getCapabilities.mockResolvedValue(capabilities())
   api.applyWatermark.mockResolvedValue({ blob: new Blob(['wm']), filename: 'holiday_watermarked.png' })
 })
 
@@ -102,5 +103,18 @@ describe('WatermarkPage', () => {
     fireEvent.change(screen.getByLabelText('Rotation'), { target: { value: '45' } })
     expect(screen.getByRole('button', { name: /download png/i })).toBeDisabled()
     expect(screen.getByText(/Settings changed/)).toBeInTheDocument()
+  })
+})
+
+describe('WatermarkPage: visible vs invisible', () => {
+  it('keeps visible and invisible watermarking as separate tools', async () => {
+    setup()
+    expect(screen.getByRole('tab', { name: 'Visible watermark' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByRole('region', { name: 'Embed invisible watermark' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: 'Invisible watermark' }))
+    expect(await screen.findByRole('region', { name: 'Embed invisible watermark' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Verify invisible watermark' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: 'Visible watermark' }))
+    expect(screen.getByText(/can be cropped or edited out/)).toBeInTheDocument()
   })
 })
