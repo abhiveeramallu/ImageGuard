@@ -89,3 +89,57 @@ def test_payload_roundtrip_and_mac():
     assert iw.parse_payload(p, b"x")[2] is False
     bad = bytearray(p); bad[16] ^= 1
     assert iw.parse_payload(bytes(bad), KEY)[2] is False
+
+
+def test_invisible_watermark_8_transformations_robustness_matrix(marked):
+    """Systematically evaluate survival and documented failure modes across all 8 Attack Lab transformations."""
+    from app.services import attack_lab_service as lab
+
+    img, r = marked
+    marked_img = r.image
+
+    # 1. Occlusion: Small patch (50x50 out of 640x480) leaves enough intact blocks -> verifies
+    occ_small, _, _ = lab.occlude_watermark(marked_img, 50, 50, 50, 50, "#000000", 1.0)
+    v_occ_small = iw.verify(occ_small, KEY)
+    assert v_occ_small.status == "verified"
+    assert v_occ_small.owner == "Acme-2026"
+
+    # 2. Crop: Small crop (preserve watermark or edge_small) survives grid search
+    cropped_small, _, _ = lab.crop_image(marked_img, preset="edge_small")
+    v_crop = iw.verify(cropped_small, KEY)
+    assert v_crop.status == "verified"
+
+    # 3. Blur: Mild blur (sigma=1.0) survives, heavy blur (sigma=6.0) disrupts high/mid DCT coefficients
+    blur_mild, _, _ = lab.blur_image(marked_img, radius=1.0)
+    assert iw.verify(blur_mild, KEY).status == "verified"
+    blur_heavy, _, _ = lab.blur_image(marked_img, radius=6.0)
+    assert iw.verify(blur_heavy, KEY).status != "verified"
+
+    # 4. JPEG recompression: High/moderate quality (95, 70) survives; low quality (25) fails
+    jpeg_q95, _, _, _ = lab.jpeg_recompress(marked_img, quality=95)
+    assert iw.verify(jpeg_q95, KEY).status == "verified"
+    jpeg_q70, _, _, _ = lab.jpeg_recompress(marked_img, quality=70)
+    assert iw.verify(jpeg_q70, KEY).status == "verified"
+    jpeg_q25, _, _, _ = lab.jpeg_recompress(marked_img, quality=25)
+    assert iw.verify(jpeg_q25, KEY).status != "verified"
+
+    # 5. Resizing: Breaks 8x8 block grid synchronization -> documented limitation: does not verify
+    resized, _, _ = lab.resize_image(marked_img, scale=0.75)
+    assert iw.verify(resized, KEY).status != "verified"
+
+    # 6. Rotation: Breaks block grid axis alignment -> documented limitation: does not verify
+    rotated, _, _ = lab.rotate_image(marked_img, angle=15.0)
+    assert iw.verify(rotated, KEY).status != "verified"
+
+    # 7. Copy-Move: Localized modification leaves remaining blocks intact -> verifies
+    tampered_cm, _, _ = lab.copy_move_tamper(marked_img, src_x=50, src_y=50, src_w=60, src_h=60, dst_x=300, dst_y=200)
+    v_cm = iw.verify(tampered_cm, KEY)
+    assert v_cm.status == "verified"
+    assert v_cm.owner == "Acme-2026"
+
+    # 8. Splicing: Localized donor insertion leaves remaining blocks intact -> verifies
+    donor = photo_like(100, 100, seed=99)
+    tampered_splice, _, _ = lab.splice_content(marked_img, donor, donor_x=0, donor_y=0, donor_w=60, donor_h=60, target_x=200, target_y=150, target_w=60, target_h=60)
+    v_sp = iw.verify(tampered_splice, KEY)
+    assert v_sp.status == "verified"
+    assert v_sp.owner == "Acme-2026"

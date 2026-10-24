@@ -1,6 +1,7 @@
 import os
 
 os.environ.setdefault("IMAGEGUARD_RATE_LIMIT_PER_MINUTE", "0")  # tests post far more than 60 requests/min
+os.environ["IMAGEGUARD_WATERMARK_KEY"] = ""  # tests assume no watermark key unless wm_key fixture is used
 import io
 
 import numpy as np

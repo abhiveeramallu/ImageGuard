@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, FileImage, ScanSearch, Stamp, TriangleAlert } from 'lucide-react'
+import { ArrowRight, FileImage, FlaskConical, ScanSearch, Stamp, TriangleAlert } from 'lucide-react'
 
 export default function Dashboard() {
   return (
@@ -12,11 +12,13 @@ export default function Dashboard() {
         </p>
       </header>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-3">
         <Card to="/detect" Icon={ScanSearch} title="Detect Forgery" cta="Analyse an image"
           text="Upload an image and search it for duplicated regions (copy-move). Get an annotated image, candidate mask, match-density overlay, region coordinates, match statistics and a downloadable report." />
         <Card to="/watermark" Icon={Stamp} title="Watermark Image" cta="Open Watermark Studio"
           text="Place a text or logo watermark with control over position, opacity, size, colour, rotation, margins and tiling. Compare with the original and download as PNG or JPEG." />
+        <Card to="/attack-lab" Icon={FlaskConical} title="Attack Lab" cta="Launch Attack Lab"
+          text="Controlled image tampering &amp; watermark damage experiments. Apply occlusions, crops, blurs, JPEG recompression, copy-move, and splicing to evaluate forensic detection." />
       </div>
 
       <section className="card p-5">

@@ -120,3 +120,44 @@ download the image from `artifact`. 503 `watermark_unavailable` if no key is con
 `file` → `{status: verified|inconclusive|not_detected, status_reason, owner, integrity_verified, algorithm, metrics, processing_ms, warnings, limitations}`.
 `verified` = a payload whose HMAC (made with the server key) is valid was recovered. `inconclusive` = watermark-like signal with a valid header but failed check.
 Neither status proves ownership or image integrity.
+
+## `POST /api/attack-lab/prepare` (multipart/form-data)
+Prepares an image session for Attack Lab experiments and optionally adds visible/invisible watermark baseline protection.
+- `file`: JPEG or PNG image
+- `visible_watermark`: bool (optional)
+- `watermark_text`, `watermark_position`, `watermark_opacity`, `watermark_font_size`, `watermark_color`: visible watermark configuration
+- `invisible_watermark`: bool (optional)
+- `invisible_owner`: 1–12 chars owner identifier
+- `invisible_strength`: `standard` | `high`
+
+Returns `{experiment_id, original_image, baseline_image, artifacts, history, warnings}`.
+
+## `POST /api/attack-lab/transform` (multipart/form-data)
+Applies a controlled transformation to either `baseline` or `current` working image.
+- `experiment_id`: active session ID
+- `transformation`: `occlusion` | `crop` | `blur` | `jpeg` | `resize` | `rotation` | `copy_move` | `splicing`
+- `target`: `current` | `baseline`
+- `params`: JSON string with transformation parameters
+- `donor_file`: optional file for `splicing`
+
+Returns `{experiment_id, transformation, params, image, ground_truth, artifacts, history, warnings}`.
+Ground truth mask artifact is stored at `/api/results/{id}/ground_truth.png`.
+
+## `POST /api/attack-lab/reset` (multipart/form-data)
+Resets working image back to the protected baseline and clears transformation history.
+- `experiment_id`: active session ID
+
+## `POST /api/attack-lab/analyze` (multipart/form-data)
+Runs forensic detectors on the modified image independently without providing ground-truth coordinates.
+- `experiment_id`: active session ID
+- `methods`: comma-separated list from `copy_move`, `splicing`, `localization`, `watermark_verify`
+- `splicing_threshold`, `localization_threshold`: detection thresholds
+
+Returns `{experiment_id, image, baseline, history, ground_truth, detection_results, watermark_verification, evaluation, answers, artifacts, report_json, report_html, processing_ms, disclaimer}`.
+
+## `GET /api/attack-lab/experiments/{id}`
+Returns full session metadata, history, detector findings, and ground-truth records.
+
+## `GET /api/attack-lab/experiments/{id}/report?format=json|html`
+Downloads formatted experiment report in JSON or HTML.
+

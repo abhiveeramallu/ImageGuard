@@ -14,6 +14,17 @@ ALLOWED_ARTIFACTS = {
 _METHOD_ARTIFACT = re.compile(r"^(copy_move|splicing|localization)\.(annotated|mask|heatmap|overlay|score)$")
 EXTRA_ARTIFACTS = {"analysis.json": ("application/json", "json"),
                    "watermarked.png": ("image/png", "png"), "watermarked.jpg": ("image/jpeg", "jpg")}
+ATTACK_LAB_ARTIFACTS = {
+    "original.png": ("image/png", "png"),
+    "original.jpg": ("image/jpeg", "jpg"),
+    "baseline.png": ("image/png", "png"),
+    "baseline.jpg": ("image/jpeg", "jpg"),
+    "modified.png": ("image/png", "png"),
+    "modified.jpg": ("image/jpeg", "jpg"),
+    "ground_truth.png": ("image/png", "png"),
+    "experiment_report.json": ("application/json", "json"),
+    "experiment_report.html": ("text/html; charset=utf-8", "html"),
+}
 
 
 def artifact_media(name: str) -> tuple[str, str] | None:
@@ -22,6 +33,8 @@ def artifact_media(name: str) -> tuple[str, str] | None:
         return ALLOWED_ARTIFACTS[name]
     if name in EXTRA_ARTIFACTS:
         return EXTRA_ARTIFACTS[name]
+    if name in ATTACK_LAB_ARTIFACTS:
+        return ATTACK_LAB_ARTIFACTS[name]
     if _METHOD_ARTIFACT.match(name):
         return "image/png", "png"
     return None

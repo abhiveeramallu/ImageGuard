@@ -15,7 +15,49 @@ def test_pixel_metrics_hand_computed():
 
 
 def test_metrics_undefined_cases_are_none():
-    assert metrics.prf({"tp": 0, "fp": 0, "fn": 0, "tn": 9})["f1"] is None
+    # Both empty (Pred=0, GT=0)
+    m_both_empty = metrics.prf({"tp": 0, "fp": 0, "fn": 0, "tn": 16})
+    assert m_both_empty["precision"] is None
+    assert m_both_empty["recall"] is None
+    assert m_both_empty["f1"] is None
+    assert m_both_empty["iou"] is None
+
+    # All-background ground truth with false alarms (GT=0, Pred>0)
+    m_gt_zero_pred_pos = metrics.prf({"tp": 0, "fp": 5, "fn": 0, "tn": 11})
+    assert m_gt_zero_pred_pos["precision"] == 0.0
+    assert m_gt_zero_pred_pos["recall"] is None
+    assert m_gt_zero_pred_pos["f1"] is None
+    assert m_gt_zero_pred_pos["iou"] is None
+
+    # Empty prediction on manipulated image (GT>0, Pred=0)
+    m_pred_zero_gt_pos = metrics.prf({"tp": 0, "fp": 0, "fn": 7, "tn": 9})
+    assert m_pred_zero_gt_pos["precision"] is None
+    assert m_pred_zero_gt_pos["recall"] == 0.0
+    assert m_pred_zero_gt_pos["f1"] == 0.0
+    assert m_pred_zero_gt_pos["iou"] == 0.0
+
+
+def test_evaluate_detection_shape_mismatch_and_empty():
+    from app.services.attack_lab_service import evaluate_detection
+
+    # Mismatched shapes: pred (2, 2), gt (4, 4)
+    gt = np.zeros((4, 4), dtype=np.uint8)
+    gt[:2, :2] = 255
+    pred = np.zeros((2, 2), dtype=np.uint8)
+    pred[0, 0] = 255  # after resize to (4, 4), top-left (2, 2) becomes 255
+
+    res = evaluate_detection(gt, pred, "copy_move")
+    assert res is not None
+    assert res["tp"] == 4
+    assert res["fp"] == 0
+    assert res["fn"] == 0
+    assert res["precision"] == 1.0
+    assert res["recall"] == 1.0
+    assert res["iou"] == 1.0
+
+    # Neither exists
+    assert evaluate_detection(None, pred, "copy_move") is None
+    assert evaluate_detection(gt, None, "copy_move") is None
 
 
 def test_image_level_metrics():

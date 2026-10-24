@@ -102,6 +102,8 @@ def get_artifact(analysis_id: str, artifact_name: str) -> Response:
     headers = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
     if artifact_name.startswith("watermarked"):
         headers["Content-Disposition"] = f'attachment; filename="imageguard-watermarked.{ext}"'
+    elif artifact_name.startswith("experiment_report"):
+        headers["Content-Disposition"] = f'attachment; filename="imageguard-experiment-report.{ext}"'
     elif ext in ("json", "html"):
         headers["Content-Disposition"] = f'attachment; filename="imageguard-report.{ext}"'
     if ext == "html":

@@ -11,8 +11,8 @@ def prf(c: dict) -> dict:
     tp, fp, fn = c["tp"], c["fp"], c["fn"]
     precision = tp / (tp + fp) if tp + fp else None
     recall = tp / (tp + fn) if tp + fn else None
-    f1 = 2 * tp / (2 * tp + fp + fn) if 2 * tp + fp + fn else None
-    iou = tp / (tp + fp + fn) if tp + fp + fn else None
+    f1 = 2 * tp / (2 * tp + fp + fn) if (2 * tp + fp + fn and tp + fn > 0) else None
+    iou = tp / (tp + fp + fn) if (tp + fp + fn and tp + fn > 0) else None
     return {"precision": precision, "recall": recall, "f1": f1, "iou": iou}
 
 
